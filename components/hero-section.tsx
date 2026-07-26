@@ -33,7 +33,6 @@ export function shouldShowDownloadButton({
 
 export function HeroSection() {
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<Awaited<ReturnType<typeof compressImageAction>> | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -60,11 +59,6 @@ export function HeroSection() {
 
     setUploadError(null);
     setFile(selectedFile);
-    const url = URL.createObjectURL(selectedFile);
-    setPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return url;
-    });
   };
 
   const handleDownload = () => {
@@ -173,11 +167,7 @@ export function HeroSection() {
                 </div>
               ) : null}
 
-              {previewUrl && file ? (
-                <div className="overflow-hidden rounded-3xl border border-slate-200">
-                  <img src={previewUrl} alt="Preview" className="h-56 w-full object-cover" />
-                </div>
-              ) : null}
+              {/* Preview removed: app shows compressed download after compression */}
 
               <div className="grid gap-4 sm:grid-cols-[1fr_0.7fr]">
                 <div className="space-y-2">
