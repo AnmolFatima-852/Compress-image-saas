@@ -7,7 +7,10 @@ export type CompressImageResult = {
   originalSize: string;
   compressedSize: string;
   savedSpace: string;
+  savedPercentage: string;
   format: string;
+  resolution: string;
+  compressionRatio: string;
   message: string;
   downloadUrl?: string;
   downloadFileName?: string;
@@ -34,6 +37,13 @@ const normalizeFormat = (format: string | undefined): SupportedFormat => {
   if (format === 'png') return 'png';
   if (format === 'webp') return 'webp';
   if (format === 'avif') return 'avif';
+  return 'jpeg';
+};
+
+const normalizeRequestedFormat = (format: string | undefined): SupportedFormat => {
+  if (format === 'png') return 'png';
+  if (format === 'jpeg') return 'jpeg';
+  if (format === 'webp') return 'webp';
   return 'jpeg';
 };
 
@@ -145,13 +155,14 @@ const getBestCompression = async (
   return { ...bestMatch.info, buffer: bestMatch.buffer };
 };
 
-export async function compressImageAction(file: File, targetSize: number, unit: 'KB' | 'MB') {
+export async function compressImageAction(file: File, targetSize: number, unit: 'KB' | 'MB', requestedFormat?: string) {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const inputBuffer = Buffer.from(arrayBuffer);
     const input = sharp(inputBuffer);
     const metadata = await input.metadata();
     const originalFormat = normalizeFormat(metadata.format);
+    const targetFormat = requestedFormat ? normalizeRequestedFormat(requestedFormat) : originalFormat;
     const targetBytes = toBytes(targetSize, unit);
 
     if (inputBuffer.length <= targetBytes) {
@@ -160,31 +171,41 @@ export async function compressImageAction(file: File, targetSize: number, unit: 
         originalSize: formatBytes(inputBuffer.length),
         compressedSize: formatBytes(inputBuffer.length),
         savedSpace: formatBytes(0),
-        format: originalFormat.toUpperCase(),
+        savedPercentage: '0%',
+        format: targetFormat.toUpperCase(),
+        resolution: `${metadata.width ?? 0} × ${metadata.height ?? 0}`,
+        compressionRatio: '1.00:1',
         message: 'Source image is already within the requested size target.',
-        downloadUrl: buildDownloadUrl(inputBuffer, originalFormat),
-        downloadFileName: buildDownloadFileName(file.name, originalFormat),
+        downloadUrl: buildDownloadUrl(inputBuffer, targetFormat),
+        downloadFileName: buildDownloadFileName(file.name, targetFormat),
       } as CompressImageResult;
     }
 
     const { buffer: compressedBuffer, size: compressedSize } = await getBestCompression(
       inputBuffer,
-      originalFormat,
+      targetFormat,
       targetBytes,
     );
+
+    const savedBytes = Math.max(inputBuffer.length - compressedSize, 0);
+    const savedPercentage = inputBuffer.length > 0 ? `${Math.round((savedBytes / inputBuffer.length) * 100)}%` : '0%';
+    const compressionRatio = inputBuffer.length > 0 ? `${(inputBuffer.length / Math.max(compressedSize, 1)).toFixed(2)}:1` : '1.00:1';
 
     return {
       success: true,
       originalSize: formatBytes(inputBuffer.length),
       compressedSize: formatBytes(compressedSize),
-      savedSpace: formatBytes(Math.max(inputBuffer.length - compressedSize, 0)),
-      format: originalFormat.toUpperCase(),
+      savedSpace: formatBytes(savedBytes),
+      savedPercentage,
+      format: targetFormat.toUpperCase(),
+      resolution: `${metadata.width ?? 0} × ${metadata.height ?? 0}`,
+      compressionRatio,
       message:
         compressedSize <= targetBytes
           ? `Compressed to ${formatBytes(compressedSize)} and met the target size.`
           : `Compressed to ${formatBytes(compressedSize)}. This is the best possible result for the selected image and format.`,
-      downloadUrl: buildDownloadUrl(compressedBuffer, originalFormat),
-      downloadFileName: buildDownloadFileName(file.name, originalFormat),
+      downloadUrl: buildDownloadUrl(compressedBuffer, targetFormat),
+      downloadFileName: buildDownloadFileName(file.name, targetFormat),
     } as CompressImageResult;
   } catch (error) {
     return {
@@ -192,7 +213,10 @@ export async function compressImageAction(file: File, targetSize: number, unit: 
       originalSize: formatBytes(file.size),
       compressedSize: '—',
       savedSpace: '—',
+      savedPercentage: '—',
       format: '—',
+      resolution: '—',
+      compressionRatio: '—',
       message: error instanceof Error ? error.message : 'Compression failed.',
     } as CompressImageResult;
   }

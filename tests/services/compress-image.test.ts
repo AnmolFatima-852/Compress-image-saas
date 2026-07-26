@@ -26,4 +26,26 @@ describe('compressImageAction', () => {
     expect(result.downloadUrl).toContain('data:image/png;base64,');
     expect(result.downloadFileName).toBe('test-image-compressed.png');
   });
+
+  it('returns format-aware metrics when an output format is requested', async () => {
+    const sourceBuffer = await sharp({
+      create: {
+        width: 256,
+        height: 256,
+        channels: 3,
+        background: { r: 240, g: 240, b: 240 },
+      },
+    })
+      .png()
+      .toBuffer();
+
+    const file = new File([sourceBuffer], 'metrics.png', { type: 'image/png' });
+    const result = await compressImageAction(file, 20, 'KB', 'webp');
+
+    expect(result.success).toBe(true);
+    expect(result.format).toBe('WEBP');
+    expect(result.resolution).toContain('256');
+    expect(result.compressionRatio).toMatch(/\d/);
+    expect(result.savedPercentage).toMatch(/%/);
+  });
 });
