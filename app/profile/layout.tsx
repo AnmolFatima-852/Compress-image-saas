@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function ProfileLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen px-4 py-6 text-slate-900 dark:text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-4">
@@ -13,8 +13,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link href="/profile" className="rounded-full bg-gradient-to-r from-violet-600 via-pink-500 to-cyan-400 px-3 py-2 text-sm font-semibold text-white">
-              Profile
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+            >
+              Dashboard
             </Link>
             <Link href="/auth/logout" className="rounded-full border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
               Log out

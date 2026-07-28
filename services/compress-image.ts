@@ -1,6 +1,8 @@
 'use server';
 
-import sharp, { OutputInfo } from 'sharp';
+import sharp, { type Metadata, OutputInfo } from 'sharp';
+import { formatBytes } from '@/lib/format-bytes';
+import { persistCompressionHistory } from '@/services/compression-history-service';
 
 export type CompressImageResult = {
   success: boolean;
@@ -24,12 +26,7 @@ type CompressionSettings = {
   formatOptions: Record<string, unknown>;
 };
 
-const formatBytes = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  return `${(kb / 1024).toFixed(2)} MB`;
-};
+const formatBytesDisplay = formatBytes;
 
 const toBytes = (size: number, unit: 'KB' | 'MB') => (unit === 'MB' ? size * 1024 * 1024 : size * 1024);
 
@@ -59,6 +56,38 @@ const buildDownloadFileName = (fileName: string, format: SupportedFormat) => {
   const baseName = fileName.replace(/\.[^.]+$/, '');
   return `${baseName}-compressed${extension}`;
 };
+
+const toFileExtension = (format: SupportedFormat) => (format === 'jpeg' ? 'jpg' : format);
+
+async function saveHistoryIfAuthenticated({
+  file,
+  targetFormat,
+  inputBuffer,
+  compressedBuffer,
+  compressedSize,
+  compressionRatio,
+  metadata,
+}: {
+  file: File;
+  targetFormat: SupportedFormat;
+  inputBuffer: Buffer;
+  compressedBuffer: Buffer;
+  compressedSize: number;
+  compressionRatio: string;
+  metadata: Metadata;
+}) {
+  await persistCompressionHistory({
+    originalFilename: file.name,
+    originalSize: inputBuffer.length,
+    compressedSize,
+    compressionRatio,
+    imageFormat: targetFormat.toUpperCase(),
+    width: metadata.width ?? 0,
+    height: metadata.height ?? 0,
+    compressedBuffer,
+    fileExtension: toFileExtension(targetFormat),
+  });
+}
 
 const getCompressionSettings = (format: SupportedFormat): CompressionSettings => {
   switch (format) {
@@ -166,11 +195,21 @@ export async function compressImageAction(file: File, targetSize: number, unit: 
     const targetBytes = toBytes(targetSize, unit);
 
     if (inputBuffer.length <= targetBytes) {
+      await saveHistoryIfAuthenticated({
+        file,
+        targetFormat,
+        inputBuffer,
+        compressedBuffer: inputBuffer,
+        compressedSize: inputBuffer.length,
+        compressionRatio: '1.00:1',
+        metadata,
+      });
+
       return {
         success: true,
-        originalSize: formatBytes(inputBuffer.length),
-        compressedSize: formatBytes(inputBuffer.length),
-        savedSpace: formatBytes(0),
+        originalSize: formatBytesDisplay(inputBuffer.length),
+        compressedSize: formatBytesDisplay(inputBuffer.length),
+        savedSpace: formatBytesDisplay(0),
         savedPercentage: '0%',
         format: targetFormat.toUpperCase(),
         resolution: `${metadata.width ?? 0} × ${metadata.height ?? 0}`,
@@ -191,26 +230,36 @@ export async function compressImageAction(file: File, targetSize: number, unit: 
     const savedPercentage = inputBuffer.length > 0 ? `${Math.round((savedBytes / inputBuffer.length) * 100)}%` : '0%';
     const compressionRatio = inputBuffer.length > 0 ? `${(inputBuffer.length / Math.max(compressedSize, 1)).toFixed(2)}:1` : '1.00:1';
 
+    await saveHistoryIfAuthenticated({
+      file,
+      targetFormat,
+      inputBuffer,
+      compressedBuffer,
+      compressedSize,
+      compressionRatio,
+      metadata,
+    });
+
     return {
       success: true,
-      originalSize: formatBytes(inputBuffer.length),
-      compressedSize: formatBytes(compressedSize),
-      savedSpace: formatBytes(savedBytes),
+      originalSize: formatBytesDisplay(inputBuffer.length),
+      compressedSize: formatBytesDisplay(compressedSize),
+      savedSpace: formatBytesDisplay(savedBytes),
       savedPercentage,
       format: targetFormat.toUpperCase(),
       resolution: `${metadata.width ?? 0} × ${metadata.height ?? 0}`,
       compressionRatio,
       message:
         compressedSize <= targetBytes
-          ? `Compressed to ${formatBytes(compressedSize)} and met the target size.`
-          : `Compressed to ${formatBytes(compressedSize)}. This is the best possible result for the selected image and format.`,
+          ? `Compressed to ${formatBytesDisplay(compressedSize)} and met the target size.`
+          : `Compressed to ${formatBytesDisplay(compressedSize)}. This is the best possible result for the selected image and format.`,
       downloadUrl: buildDownloadUrl(compressedBuffer, targetFormat),
       downloadFileName: buildDownloadFileName(file.name, targetFormat),
     } as CompressImageResult;
   } catch (error) {
     return {
       success: false,
-      originalSize: formatBytes(file.size),
+      originalSize: formatBytesDisplay(file.size),
       compressedSize: '—',
       savedSpace: '—',
       savedPercentage: '—',

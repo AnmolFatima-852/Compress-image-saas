@@ -11,10 +11,11 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = useMemo(
-    () => [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/profile', label: 'Profile', icon: UserCircle2 },
-    ],
+    () =>
+      [
+        { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/profile', label: 'Profile', icon: UserCircle2 },
+      ] as const,
     [],
   );
 
@@ -53,6 +54,12 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+            <Link
+              href="/auth/logout"
+              className="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
+            >
+              Log out
+            </Link>
           </div>
         ) : null}
 

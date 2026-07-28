@@ -12,30 +12,70 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     let active = true;
     const client = getSupabaseClient();
 
-    const verifySession = async () => {
-      if (!client) {
-        router.replace('/login');
-        return;
-      }
+    if (!client) {
+      router.replace('/login');
+      return;
+    }
 
-      const {\n        data: { session },
-        error,
-      } = await client.auth.getSession();
+    let initialResolved = false;
 
+    const allow = () => {
       if (!active) return;
-
-      if (error || !session) {
-        router.replace('/login');
-        return;
-      }
-
       setReady(true);
     };
 
-    void verifySession();
+    const deny = (canRedirect: boolean) => {
+      if (!active) return;
+      setReady(false);
+      if (canRedirect) {
+        router.replace('/login');
+      }
+    };
+
+    const verifyUser = async (canRedirect: boolean) => {
+      const { data, error } = await client.auth.getUser();
+      if (!active) return;
+
+      if (error || !data.user) {
+        deny(canRedirect);
+        return;
+      }
+
+      allow();
+    };
+
+    void verifyUser(true).then(() => {
+      initialResolved = true;
+    });
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((event, session) => {
+      if (!initialResolved && event !== 'INITIAL_SESSION') {
+        return;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        initialResolved = true;
+        deny(true);
+        return;
+      }
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        initialResolved = true;
+        allow();
+        return;
+      }
+
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+        initialResolved = true;
+        void verifyUser(true);
+      }
+    });
 
     return () => {
       active = false;
+      subscription.unsubscribe();
     };
   }, [router]);
 
