@@ -3,3 +3,9 @@ node_modules
 out
 pnpm-lock.yaml
 *.log
+
+# Environment files
+.env.local
+.env
+.env.*
+!.env.example
