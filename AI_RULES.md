@@ -835,3 +835,293 @@ Whenever you generate code:
 8. Optimize for maintainability, readability, and scalability over brevity.
 9. Build each feature completely before moving to the next phase.
 10. Treat this as a real commercial SaaS product intended for production.
+
+------------------------------------------------------------
+BATCH PROCESSING
+------------------------------------------------------------
+
+The application must support both:
+
+1. Single Image Compression
+2. Batch Image Compression
+
+Batch mode requirements:
+
+- Upload multiple images simultaneously.
+- Drag & Drop multiple images.
+- Browse multiple images.
+- Remove individual images before compression.
+- Display thumbnail previews.
+- Display file name and original size.
+- Compress all images in one operation.
+- Show per-image progress.
+- Show overall batch progress.
+- Support JPEG, PNG, WEBP and AVIF.
+- Never freeze the UI.
+- Support at least 100 images in one batch.
+
+------------------------------------------------------------
+DOWNLOAD OPTIONS
+------------------------------------------------------------
+
+After batch compression the application must provide:
+
+Download ZIP
+
+Download PDF
+
+Download Individual Images
+
+ZIP Requirements
+
+Include every compressed image.
+
+Preserve filenames.
+
+Use compressed versions.
+
+PDF Requirements
+
+Each image appears on its own page.
+
+Images centered.
+
+Maintain aspect ratio.
+
+High quality rendering.
+
+Support landscape and portrait images.
+
+Do not distort images.
+
+------------------------------------------------------------
+PDF TOOLS
+------------------------------------------------------------
+
+Add a second tool inside the application.
+
+Modes
+
+Compress Images
+
+Images to PDF
+
+Images to PDF mode should
+
+Not compress images.
+
+Simply combine uploaded images into a PDF.
+
+Support multiple images.
+
+Allow drag and drop.
+
+Allow image reordering.
+
+Generate a high-quality PDF.
+
+Download PDF.
+
+Preserve image quality.
+
+------------------------------------------------------------
+BATCH HISTORY
+------------------------------------------------------------
+
+Save every completed batch.
+
+History should include
+
+Batch ID
+
+Number of images
+
+Original total size
+
+Compressed total size
+
+Saved space
+
+Compression ratio
+
+Processing time
+
+Date
+
+Time
+
+ZIP download
+
+PDF download
+
+Individual downloads
+
+------------------------------------------------------------
+USER EXPERIENCE
+------------------------------------------------------------
+
+All new features must match the existing application.
+
+Requirements
+
+Same gradients
+
+Same spacing
+
+Same typography
+
+Same animations
+
+Same buttons
+
+Same cards
+
+Same rounded corners
+
+Same theme support
+
+No redesigns.
+
+Extend the existing UI only.
+
+------------------------------------------------------------
+PHASE 5
+------------------------------------------------------------
+
+Batch Processing
+
+Support selecting multiple images.
+
+Compress all images.
+
+Continue processing if one image fails.
+
+Never enlarge an image.
+
+Support:
+
+- JPEG
+- PNG
+- WEBP
+
+Allow:
+
+Download ZIP
+
+Download PDF
+
+Download Individually
+
+Allow recompression without reuploading.
+
+Generate PDF without compression.
+
+Release all temporary resources after downloads.
+
+Support large batches (100+ images).
+
+Optimize memory usage.
+
+Show batch statistics.
+
+Show per-image progress.
+
+Show overall progress.
+
+Save batch history in Supabase.
+
+Never stop the batch because one image fails.
+
+Maintain the same premium UI/UX as the rest of the application.
+
+------------------------------------------------------------
+BATCH PROCESSING
+------------------------------------------------------------
+
+Support selecting multiple images.
+
+Allow drag & drop multiple images.
+
+Allow browsing multiple images.
+
+Support batch compression.
+
+Never fail the entire batch because of one image.
+
+Images already smaller than the requested target must be marked as:
+
+Skipped
+Already below target size
+
+Continue compressing all remaining images.
+
+Show:
+
+- Per-image progress
+- Overall progress
+- Batch statistics
+- Done
+- Failed
+- Skipped
+
+Allow:
+
+Download ZIP
+
+Download PDF
+
+Download individual images
+
+Compress Again
+
+Batch history must be saved in Supabase.
+
+------------------------------------------------------------
+PDF FEATURES
+------------------------------------------------------------
+
+Support Image → PDF without compression.
+
+Allow:
+
+- Multiple images
+- Drag to reorder pages
+- Download merged PDF
+
+Keep original image quality.
+
+------------------------------------------------------------
+PERFORMANCE
+------------------------------------------------------------
+
+Support thousands of concurrent users.
+
+Never block the UI.
+
+Use streaming where possible.
+
+Large downloads must be generated server-side.
+
+Avoid memory leaks.
+
+Retry failed downloads.
+
+------------------------------------------------------------
+ERROR HANDLING
+------------------------------------------------------------
+
+Never silently fail.
+
+Always explain why an image failed.
+
+Examples:
+
+Image already below target size
+
+Cannot compress PNG further
+
+WebP conversion failed
+
+File corrupted
+
+Continue processing the remaining images.

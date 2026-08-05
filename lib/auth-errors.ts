@@ -3,6 +3,8 @@ export const EMAIL_ALREADY_REGISTERED_MESSAGE =
 
 export const SIGNUP_VERIFY_EMAIL_MESSAGE = 'Check your inbox to verify your email.';
 
+export const EMAIL_VERIFIED_SUCCESS_MESSAGE = 'Email verified successfully. Please sign in.';
+
 /**
  * Supabase often returns a user with an empty identities array (and no session)
  * when signUp is called with an email that already exists, instead of throwing.

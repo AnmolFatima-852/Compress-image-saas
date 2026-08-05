@@ -11,6 +11,7 @@ export function ProfileForm() {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -33,10 +34,18 @@ export function ProfileForm() {
     };
   }, []);
 
+  const handleFullNameChange = (value: string) => {
+    setFullName(value);
+    if (saved) {
+      setSaved(false);
+    }
+  };
+
   const handleSaveName = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     setMessage(null);
+    setSaved(false);
     setSaving(true);
 
     const result = await updateProfileFullName(fullName);
@@ -49,6 +58,7 @@ export function ProfileForm() {
 
     setMessage('Profile updated successfully.');
     setProfile((current) => (current ? { ...current, fullName: fullName.trim() } : current));
+    setSaved(true);
   };
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,7 +135,7 @@ export function ProfileForm() {
           <input
             type="text"
             value={fullName}
-            onChange={(event) => setFullName(event.target.value)}
+            onChange={(event) => handleFullNameChange(event.target.value)}
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 outline-none dark:border-slate-600 dark:bg-slate-800/80 dark:text-slate-100"
           />
         </label>
@@ -141,11 +151,11 @@ export function ProfileForm() {
         <div className="md:col-span-2">
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || saved}
             className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-pink-500 to-cyan-400 px-4 py-3 font-semibold text-white disabled:opacity-60"
           >
             {saving ? <Loader2 size={18} className="animate-spin" /> : null}
-            Save profile
+            {saved ? '✔ Saved' : 'Save Profile'}
           </button>
         </div>
       </form>

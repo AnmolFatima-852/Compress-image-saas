@@ -3,6 +3,7 @@
 import { ArrowDownToLine, Clock3, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { formatLocalDateTime } from '@/lib/format-local-datetime';
 import { getCompressionHistoryForDashboard, type DashboardHistoryItem } from '@/services/compression-history-service';
 
 export function DashboardHistory() {
@@ -34,16 +35,16 @@ export function DashboardHistory() {
 
   if (loading) {
     return (
-      <div className="mt-8 flex items-center justify-center gap-2 rounded-3xl border border-dashed border-slate-300 p-8 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
+      <div className="mt-6 flex items-center justify-center gap-2 rounded-3xl border border-dashed border-slate-300 p-8 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
         <Loader2 size={18} className="animate-spin" />
-        Loading compression history...
+        Loading individual downloads...
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="mt-8 rounded-3xl border border-rose-200 bg-rose-50 p-8 text-center text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+      <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 p-8 text-center text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
         {error}
       </div>
     );
@@ -51,14 +52,14 @@ export function DashboardHistory() {
 
   if (history.length === 0) {
     return (
-      <div className="mt-8 rounded-3xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
-        No compressed images yet. Run a compression from the home screen to see it appear here.
+      <div className="mt-6 rounded-3xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
+        No individual downloads yet. Compress images while signed in to save them here.
       </div>
     );
   }
 
   return (
-    <div className="mt-8 grid gap-4">
+    <div className="mt-6 grid gap-4">
       {history.map((item) => (
         <div
           key={item.id}
@@ -71,13 +72,13 @@ export function DashboardHistory() {
               <span>
                 {item.originalSize} → {item.compressedSize}
               </span>
-              <span>{item.savedPercentage} saved</span>
+              <span>{item.savedSpace} saved ({item.savedPercentage})</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
               <Clock3 size={16} />
-              {new Date(item.createdAt).toLocaleDateString()}
+              {formatLocalDateTime(item.createdAt)}
             </div>
             {item.downloadUrl ? (
               <a

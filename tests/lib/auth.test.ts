@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_POST_AUTH_PATH, getSafePostAuthPath, validateAuthForm } from '@/lib/auth';
 import { resolveAppOrigin } from '@/lib/app-origin';
-import { getSignupEmailRedirectTo } from '@/lib/auth-redirect';
+import { getSignupEmailRedirectTo, getLoginUrlAfterVerification } from '@/lib/auth-redirect';
 import {
   EMAIL_ALREADY_REGISTERED_MESSAGE,
+  EMAIL_VERIFIED_SUCCESS_MESSAGE,
   isDuplicateSignupResponse,
   mapAuthError,
 } from '@/lib/auth-errors';
@@ -44,6 +45,26 @@ describe('getSignupEmailRedirectTo', () => {
   });
 });
 
+describe('getLoginUrlAfterVerification', () => {
+  it('sends verified users to the login page with a success flag', () => {
+    expect(getLoginUrlAfterVerification('http://localhost:3000', '1')).toBe(
+      'http://localhost:3000/login?verified=1',
+    );
+  });
+
+  it('marks failed verification distinctly', () => {
+    expect(getLoginUrlAfterVerification('http://localhost:3000', '0')).toBe(
+      'http://localhost:3000/login?verified=0',
+    );
+  });
+});
+
+describe('EMAIL_VERIFIED_SUCCESS_MESSAGE', () => {
+  it('matches the required post-verification copy', () => {
+    expect(EMAIL_VERIFIED_SUCCESS_MESSAGE).toBe('Email verified successfully. Please sign in.');
+  });
+});
+
 describe('resolveAppOrigin', () => {
   const originalNodeEnv = process.env.NODE_ENV;
   const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -68,7 +89,7 @@ describe('getSafePostAuthPath', () => {
     expect(getSafePostAuthPath('https://evil.test')).toBe(DEFAULT_POST_AUTH_PATH);
   });
 
-  it('allows protected account destinations from login next params', () => {
+  it('allows protected account destinations', () => {
     expect(getSafePostAuthPath('/dashboard')).toBe('/dashboard');
     expect(getSafePostAuthPath('/profile')).toBe('/profile');
   });

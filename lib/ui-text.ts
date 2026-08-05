@@ -1,13 +1,13 @@
 /** Shared Tailwind class groups for readable light/dark text (WCAG-oriented). */
 export const textEyebrow = 'text-slate-500 dark:text-slate-400';
-export const textHeading = 'text-slate-950 dark:text-slate-100';
-export const textBody = 'text-slate-600 dark:text-slate-300';
+export const textHeading = 'text-slate-950 dark:text-slate-50';
+export const textBody = 'text-slate-600 dark:text-slate-200';
 export const textMuted = 'text-slate-500 dark:text-slate-400';
-export const textLabel = 'text-slate-700 dark:text-slate-300';
+export const textLabel = 'text-slate-700 dark:text-slate-200';
 export const textLink = 'font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300';
 export const textNav = 'text-slate-600 transition hover:text-violet-600 dark:text-slate-300 dark:hover:text-violet-400';
 export const textGradientAccent =
-  'bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent dark:from-violet-400 dark:to-cyan-300';
+  'bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent dark:from-violet-300 dark:to-cyan-300';
 export const surfaceCard = 'border border-slate-200/80 bg-white/90 dark:border-slate-700 dark:bg-slate-900/90';
 export const surfaceMuted = 'border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70';
 export const alertError =

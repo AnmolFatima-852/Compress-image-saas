@@ -1,4 +1,8 @@
--- Storage buckets for avatars and compressed file downloads (Dashboard).
+-- =============================================================================
+-- Storage buckets + RLS for avatars and compressed downloads
+-- Run this SECOND in the Supabase SQL Editor (after 001).
+-- =============================================================================
+
 insert into storage.buckets (id, name, public)
 values
   ('compression-outputs', 'compression-outputs', false),
@@ -8,7 +12,7 @@ set
   name = excluded.name,
   public = excluded.public;
 
--- compression-outputs
+-- compression-outputs (private; path: {user_id}/{history_id}.{ext})
 drop policy if exists "Users can upload own compression outputs" on storage.objects;
 create policy "Users can upload own compression outputs"
   on storage.objects for insert
@@ -45,7 +49,7 @@ create policy "Users can delete own compression outputs"
     and auth.uid()::text = (storage.foldername(name))[1]
   );
 
--- avatars
+-- avatars (public read; path: {user_id}/avatar.{ext})
 drop policy if exists "Users can upload own avatar" on storage.objects;
 create policy "Users can upload own avatar"
   on storage.objects for insert

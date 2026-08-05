@@ -1,30 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { shouldDisableCompressButton, shouldShowDownloadButton } from '@/components/hero-section';
+import {
+  compressionSettingsChanged,
+  shouldDisableCompressButton,
+  shouldShowDownloadButton,
+} from '@/components/hero-section';
 
 describe('shouldShowDownloadButton', () => {
   it('returns false while compression is in progress', () => {
     expect(
       shouldShowDownloadButton({
         isCompressing: true,
-        result: { success: true, downloadUrl: 'https://example.com/file.jpg' } as never,
+        successCount: 2,
       }),
     ).toBe(false);
   });
 
-  it('returns true only after a successful compression with a download URL', () => {
+  it('returns true after at least one successful compression', () => {
     expect(
       shouldShowDownloadButton({
         isCompressing: false,
-        result: { success: true, downloadUrl: 'https://example.com/file.jpg' } as never,
+        successCount: 1,
       }),
     ).toBe(true);
   });
 
-  it('returns false after a failed compression', () => {
+  it('returns false when no images succeeded', () => {
     expect(
       shouldShowDownloadButton({
         isCompressing: false,
-        result: { success: false, downloadUrl: null } as never,
+        successCount: 0,
       }),
     ).toBe(false);
   });
@@ -32,14 +36,51 @@ describe('shouldShowDownloadButton', () => {
 
 describe('shouldDisableCompressButton', () => {
   it('disables the compress button while compression is in progress', () => {
-    expect(shouldDisableCompressButton({ file: new File(['test'], 'test.png', { type: 'image/png' }), isCompressing: true })).toBe(true);
+    expect(shouldDisableCompressButton({ fileCount: 1, isCompressing: true })).toBe(true);
   });
 
   it('disables the compress button until an image is selected', () => {
-    expect(shouldDisableCompressButton({ file: null, isCompressing: false })).toBe(true);
+    expect(shouldDisableCompressButton({ fileCount: 0, isCompressing: false })).toBe(true);
   });
 
-  it('keeps the compress button enabled when a file is ready and compression is not in progress', () => {
-    expect(shouldDisableCompressButton({ file: new File(['test'], 'test.png', { type: 'image/png' }), isCompressing: false })).toBe(false);
+  it('keeps the compress button enabled when files are ready and compression is not in progress', () => {
+    expect(shouldDisableCompressButton({ fileCount: 3, isCompressing: false })).toBe(false);
+  });
+
+  it('disables compress after a completed run until settings change', () => {
+    expect(
+      shouldDisableCompressButton({
+        fileCount: 2,
+        isCompressing: false,
+        batchComplete: true,
+        settingsChanged: false,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldDisableCompressButton({
+        fileCount: 2,
+        isCompressing: false,
+        batchComplete: true,
+        settingsChanged: true,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('compressionSettingsChanged', () => {
+  it('detects target size, unit, and format changes', () => {
+    const previous = { targetSize: 100, unit: 'KB' as const, outputFormat: 'jpeg' as const };
+    expect(compressionSettingsChanged(previous, null)).toBe(true);
+    expect(compressionSettingsChanged(previous, previous)).toBe(false);
+    expect(
+      compressionSettingsChanged({ ...previous, targetSize: 50 }, previous),
+    ).toBe(true);
+    expect(
+      compressionSettingsChanged({ ...previous, unit: 'MB' }, previous),
+    ).toBe(true);
+    expect(
+      compressionSettingsChanged({ ...previous, outputFormat: 'webp' }, previous),
+    ).toBe(true);
   });
 });

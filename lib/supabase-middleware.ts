@@ -1,9 +1,19 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { DEFAULT_POST_AUTH_PATH } from '@/lib/auth';
+import { AUTH_CALLBACK_PATH } from '@/lib/auth-redirect';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/profile'] as const;
 const AUTH_PAGES = ['/login', '/signup'] as const;
+
+/** Supabase may land verification links on Site URL (/) — forward to the callback handler. */
+function hasEmailVerificationParams(url: URL) {
+  return Boolean(
+    url.searchParams.get('code') ||
+      (url.searchParams.get('token_hash') && url.searchParams.get('type')) ||
+      url.searchParams.get('error_description'),
+  );
+}
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some(
@@ -29,11 +39,21 @@ function redirectWithSessionCookies(url: URL, sessionResponse: NextResponse) {
  * Refreshes the Supabase auth session from cookies and enforces route guards.
  */
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === '/' && hasEmailVerificationParams(request.nextUrl)) {
+    const callbackUrl = new URL(AUTH_CALLBACK_PATH, request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      callbackUrl.searchParams.set(key, value);
+    });
+    return NextResponse.redirect(callbackUrl);
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    if (isProtectedPath(request.nextUrl.pathname)) {
+    if (isProtectedPath(pathname)) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
@@ -63,12 +83,8 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
   if (!user && isProtectedPath(pathname)) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('next', pathname);
-    return redirectWithSessionCookies(loginUrl, supabaseResponse);
+    return redirectWithSessionCookies(new URL('/login', request.url), supabaseResponse);
   }
 
   if (user && isAuthPage(pathname)) {

@@ -4,9 +4,10 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getSignupEmailRedirectTo } from '@/lib/auth-redirect';
-import { AuthMode, DEFAULT_POST_AUTH_PATH, getSafePostAuthPath, validateAuthForm } from '@/lib/auth';
+import { AuthMode, DEFAULT_POST_AUTH_PATH, validateAuthForm } from '@/lib/auth';
 import {
   EMAIL_ALREADY_REGISTERED_MESSAGE,
+  EMAIL_VERIFIED_SUCCESS_MESSAGE,
   SIGNUP_VERIFY_EMAIL_MESSAGE,
   isDuplicateSignupResponse,
   mapAuthError,
@@ -14,16 +15,8 @@ import {
 import { alertError, alertSuccess, textLabel, textLink } from '@/lib/ui-text';
 import { getSupabaseClient } from '@/lib/supabase';
 
-function getPostAuthPath() {
-  if (typeof window === 'undefined') {
-    return DEFAULT_POST_AUTH_PATH;
-  }
-
-  return getSafePostAuthPath(new URLSearchParams(window.location.search).get('next'));
-}
-
 /** Full navigation so middleware receives cookie-backed session on the next request. */
-function completeAuthRedirect(path: ReturnType<typeof getPostAuthPath>) {
+function completeAuthRedirect(path: typeof DEFAULT_POST_AUTH_PATH = DEFAULT_POST_AUTH_PATH) {
   window.location.assign(path);
 }
 
@@ -44,14 +37,19 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     const verified = params.get('verified');
 
     if (verified === '1') {
-      setMessage('Your email is verified. Sign in to continue.');
-    } else if (verified === '0') {
+      setMessage(EMAIL_VERIFIED_SUCCESS_MESSAGE);
+      // Clear any session left from the verification exchange so the user signs in explicitly.
+      void client.auth.signOut({ scope: 'global' });
+      return;
+    }
+
+    if (verified === '0') {
       setError('Email verification failed or the link expired. Request a new confirmation email.');
     }
 
     client.auth.getSession().then(({ data }) => {
       if (data.session && verified !== '1') {
-        completeAuthRedirect(getPostAuthPath());
+        completeAuthRedirect();
       }
     });
   }, []);
@@ -118,7 +116,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               { onConflict: 'id' },
             );
           }
-          completeAuthRedirect(getPostAuthPath());
+          completeAuthRedirect();
         } else if (data.user) {
           setMessage(SIGNUP_VERIFY_EMAIL_MESSAGE);
         } else {
@@ -130,7 +128,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
         const session = data.session ?? (await client.auth.getSession()).data.session;
         if (session) {
-          completeAuthRedirect(getPostAuthPath());
+          completeAuthRedirect();
         } else {
           setMessage('Sign-in succeeded. Confirm your email, then sign in again.');
         }

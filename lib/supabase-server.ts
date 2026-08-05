@@ -13,7 +13,10 @@ function getSupabaseEnv() {
   return { supabaseUrl, supabaseAnonKey };
 }
 
-/** Server Supabase client backed by request cookies (App Router / Server Actions). */
+/**
+ * Server Supabase client backed by request cookies (App Router / Server Actions).
+ * setAll is wrapped so session refresh cannot crash the action when cookies are read-only.
+ */
 export async function createSupabaseServerClient(): Promise<SupabaseClient | null> {
   const env = getSupabaseEnv();
   if (!env) {
@@ -28,9 +31,14 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient | nul
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // Ignored in contexts where the cookie store is read-only.
+          // Session reads still succeed from the incoming request cookies.
+        }
       },
     },
   });
