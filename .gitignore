@@ -3,6 +3,7 @@ node_modules
 out
 pnpm-lock.yaml
 *.log
+*.tsbuildinfo
 
 # Environment files
 .env.local
