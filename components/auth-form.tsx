@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getSignupEmailRedirectTo } from '@/lib/auth-redirect';
+import { getPasswordResetRedirectTo, getSignupEmailRedirectTo } from '@/lib/auth-redirect';
 import { AuthMode, DEFAULT_POST_AUTH_PATH, validateAuthForm } from '@/lib/auth';
 import {
   EMAIL_ALREADY_REGISTERED_MESSAGE,
@@ -12,6 +12,7 @@ import {
   isDuplicateSignupResponse,
   mapAuthError,
 } from '@/lib/auth-errors';
+import { PASSWORD_RESET_SUCCESS_MESSAGE } from '@/lib/password-reset';
 import { alertError, alertSuccess, textLabel, textLink } from '@/lib/ui-text';
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -35,6 +36,11 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
     const params = new URLSearchParams(window.location.search);
     const verified = params.get('verified');
+    const passwordReset = params.get('passwordReset');
+
+    if (mode === 'login' && passwordReset === '1') {
+      setMessage(PASSWORD_RESET_SUCCESS_MESSAGE);
+    }
 
     if (verified === '1') {
       setMessage(EMAIL_VERIFIED_SUCCESS_MESSAGE);
@@ -47,12 +53,17 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       setError('Email verification failed or the link expired. Request a new confirmation email.');
     }
 
+    // Forgot-password / reset request must never auto-enter the app from a recovery session.
+    if (mode === 'reset') {
+      return;
+    }
+
     client.auth.getSession().then(({ data }) => {
-      if (data.session && verified !== '1') {
+      if (data.session && verified !== '1' && passwordReset !== '1') {
         completeAuthRedirect();
       }
     });
-  }, []);
+  }, [mode]);
 
   const validate = () => {
     const result = validateAuthForm({ email, password, mode, fullName });
@@ -84,7 +95,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     try {
       if (mode === 'reset') {
         const { error } = await client.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: getPasswordResetRedirectTo(window.location.origin),
         });
         if (error) throw error;
         setMessage('Password reset instructions have been sent to your email.');
@@ -186,26 +197,41 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               className="w-full bg-transparent text-slate-900 outline-none dark:text-slate-100"
               placeholder="••••••••"
             />
-            <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label="Toggle password visibility" className="text-slate-500 dark:text-slate-400">
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              aria-label="Toggle password visibility"
+              className="text-slate-500 dark:text-slate-400"
+            >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </label>
       ) : null}
 
-      <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-pink-500 to-cyan-400 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+      <button
+        type="submit"
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-pink-500 to-cyan-400 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+      >
         {loading ? <Loader2 size={18} className="animate-spin" /> : null}
         {mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
       </button>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600 dark:text-slate-400">
         {mode === 'login' ? (
-          <Link href="/reset-password" className={textLink}>Forgot password?</Link>
+          <Link href="/reset-password" className={textLink}>
+            Forgot password?
+          </Link>
         ) : null}
         {mode === 'login' ? (
-          <Link href="/signup" className={textLink}>Create account</Link>
+          <Link href="/signup" className={textLink}>
+            Create account
+          </Link>
         ) : (
-          <Link href="/login" className={textLink}>Back to sign in</Link>
+          <Link href="/login" className={textLink}>
+            Back to sign in
+          </Link>
         )}
       </div>
     </form>
