@@ -69,13 +69,22 @@ describe('resolveAppOrigin', () => {
   const originalNodeEnv = process.env.NODE_ENV;
   const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 
+  function setNodeEnv(value: string | undefined) {
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value,
+      configurable: true,
+      writable: true,
+      enumerable: true,
+    });
+  }
+
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    setNodeEnv(originalNodeEnv);
     process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
   });
 
   it('uses the request origin in development even when APP_URL differs by port', () => {
-    process.env.NODE_ENV = 'development';
+    setNodeEnv('development');
     process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 
     expect(resolveAppOrigin('http://localhost:3001/auth/callback?code=abc')).toBe('http://localhost:3001');

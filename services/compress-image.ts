@@ -283,11 +283,17 @@ async function compressPngToTarget(
   const sourceHeight = metadata.height ?? 1;
   // Reserve encodes so an impossible target can still finish at minimum valid size.
   const searchEncodeBudget = Math.max(8, MAX_PNG_ENCODES - 6);
-  let best: EncodedResult | null = null;
+  /**
+   * Closest candidate is stored on an object so TypeScript control-flow analysis does not
+   * treat `best` as permanently `null`. Assignments happen inside nested `consider` /
+   * `tryEncode` closures; CFA ignores those writes for a bare `let`, which incorrectly
+   * narrowed later `best && …` branches to `never`.
+   */
+  const selection: { best: EncodedResult | null } = { best: null };
   let encodes = 0;
 
   const consider = (candidate: EncodedResult) => {
-    best = pickCloser(best, candidate, targetBytes, inputBuffer.length);
+    selection.best = pickCloser(selection.best, candidate, targetBytes, inputBuffer.length);
     return candidate;
   };
 
@@ -341,10 +347,11 @@ async function compressPngToTarget(
   }
 
   // Already at/under target at full size: cannot grow the file; return closest.
-  if (best && best.info.size <= targetBytes) {
+  const bestAfterPhase1 = selection.best;
+  if (bestAfterPhase1 && bestAfterPhase1.info.size <= targetBytes) {
     return {
-      ...best,
-      exactMatch: withinTolerance(best.info.size, targetBytes, PNG_TOLERANCE_BYTES),
+      ...bestAfterPhase1,
+      exactMatch: withinTolerance(bestAfterPhase1.info.size, targetBytes, PNG_TOLERANCE_BYTES),
     };
   }
 
@@ -370,7 +377,8 @@ async function compressPngToTarget(
     scaleLow *= 0.72;
   }
 
-  if (!underFound && best && best.info.size > targetBytes) {
+  const bestBeforeExtraShrink = selection.best;
+  if (!underFound && bestBeforeExtraShrink && bestBeforeExtraShrink.info.size > targetBytes) {
     // Still oversized — keep shrinking with palette variants.
     let width = Math.max(1, Math.round(sourceWidth * scaleLow));
     let height = Math.max(1, Math.round(sourceHeight * scaleLow));
@@ -392,7 +400,8 @@ async function compressPngToTarget(
   }
 
   // Phase 3 — binary search scale between last-over and first-under to minimize error.
-  if (underFound || (best && best.info.size <= targetBytes)) {
+  const bestBeforeScaleSearch = selection.best;
+  if (underFound || (bestBeforeScaleSearch && bestBeforeScaleSearch.info.size <= targetBytes)) {
     for (let iteration = 0; iteration < MAX_PNG_SCALE_ITERS && encodes < searchEncodeBudget; iteration += 1) {
       const scaleMid = (scaleLow + scaleHigh) / 2;
       const { width, height } = scaleDimensions(sourceWidth, sourceHeight, scaleMid);
@@ -450,7 +459,8 @@ async function compressPngToTarget(
 
   // Phase 5 — target is impossible for lossless PNG: force the smallest valid PNG.
   let forcedMinimumValid = false;
-  if (!best || best.info.size > targetBytes) {
+  const bestBeforeForce = selection.best;
+  if (!bestBeforeForce || bestBeforeForce.info.size > targetBytes) {
     const minScale = Math.min(MIN_PNG_DIMENSION / sourceWidth, MIN_PNG_DIMENSION / sourceHeight, 1);
     const { width, height } = scaleDimensions(sourceWidth, sourceHeight, minScale);
 
@@ -461,17 +471,19 @@ async function compressPngToTarget(
     await tryEncode(width, height, { palette: false }, { force: true });
     forcedMinimumValid = true;
 
-    if (best) {
+    const forcedBest = selection.best;
+    if (forcedBest) {
       logDev('PNG target impossible — returning smallest valid PNG', {
-        size: best.info.size,
+        size: forcedBest.info.size,
         targetBytes,
-        width: best.width,
-        height: best.height,
+        width: forcedBest.width,
+        height: forcedBest.height,
         encodes,
       });
     }
   }
 
+  const best = selection.best;
   if (!best) {
     throw new Error('PNG compression produced no candidates.');
   }

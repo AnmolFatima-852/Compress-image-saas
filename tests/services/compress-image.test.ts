@@ -26,6 +26,11 @@ async function createNoisyPng(width: number, height: number) {
   return sharp(raw, { raw: { width, height, channels: 3 } }).png().toBuffer();
 }
 
+/** Node Buffer is not always assignable to BlobPart under strict DOM typings. */
+function fileFromBuffer(buffer: Buffer, name: string, type: string) {
+  return new File([Uint8Array.from(buffer)], name, { type });
+}
+
 describe('targetSizeToBytes', () => {
   it('converts KB and MB to bytes correctly', () => {
     expect(targetSizeToBytes(20, 'KB')).toBe(20 * 1024);
@@ -66,7 +71,7 @@ describe('compressImageAction', () => {
       .png()
       .toBuffer();
 
-    const file = new File([sourceBuffer], 'tiny.png', { type: 'image/png' });
+    const file = fileFromBuffer(sourceBuffer, 'tiny.png', 'image/png');
     const result = await compressImageAction(file, 500, 'KB', 'png');
 
     expect(result.success).toBe(true);
@@ -93,7 +98,7 @@ describe('compressImageAction', () => {
       .png()
       .toBuffer();
 
-    const file = new File([sourceBuffer], 'tiny.png', { type: 'image/png' });
+    const file = fileFromBuffer(sourceBuffer, 'tiny.png', 'image/png');
     const result = await compressImageAction(file, 1, 'MB', 'jpeg');
 
     expect(result.success).toBe(true);
@@ -107,7 +112,7 @@ describe('compressImageAction', () => {
     const sourceBuffer = await createNoisyJpeg(900, 700);
     expect(sourceBuffer.length).toBeGreaterThan(targetSizeToBytes(50, 'KB'));
 
-    const file = new File([sourceBuffer], 'photo.jpg', { type: 'image/jpeg' });
+    const file = fileFromBuffer(sourceBuffer, 'photo.jpg', 'image/jpeg');
     const result = await compressImageAction(file, 50, 'KB', 'png');
 
     expect(result.success).toBe(true);
@@ -127,7 +132,7 @@ describe('compressImageAction', () => {
     const targetBytes = targetSizeToBytes(targetKb, 'KB');
     expect(sourceBuffer.length).toBeGreaterThan(targetBytes);
 
-    const file = new File([sourceBuffer], 'diagram.jpg', { type: 'image/jpeg' });
+    const file = fileFromBuffer(sourceBuffer, 'diagram.jpg', 'image/jpeg');
     const result = await compressImageAction(file, targetKb, 'KB', 'png');
 
     expect(result.success).toBe(true);
@@ -163,7 +168,7 @@ describe('compressImageAction', () => {
       .toBuffer();
     expect(sourceBuffer.length).toBeGreaterThan(targetSizeToBytes(80, 'KB'));
 
-    const file = new File([sourceBuffer], 'glass.png', { type: 'image/png' });
+    const file = fileFromBuffer(sourceBuffer, 'glass.png', 'image/png');
     const result = await compressImageAction(file, 80, 'KB', 'png');
 
     expect(result.success).toBe(true);
@@ -181,7 +186,7 @@ describe('compressImageAction', () => {
     const sourceBuffer = await createNoisyPng(1200, 900);
     expect(sourceBuffer.length).toBeGreaterThan(targetSizeToBytes(30, 'KB'));
 
-    const file = new File([sourceBuffer], 'metrics.png', { type: 'image/png' });
+    const file = fileFromBuffer(sourceBuffer, 'metrics.png', 'image/png');
     const result = await compressImageAction(file, 30, 'KB', 'webp');
 
     expect(result.success).toBe(true);
@@ -201,7 +206,7 @@ describe('compressImageAction', () => {
     const sourceBuffer = await createNoisyJpeg(1000, 800, 90);
     expect(sourceBuffer.length).toBeGreaterThan(targetSizeToBytes(40, 'KB'));
 
-    const file = new File([sourceBuffer], 'camera.jpg', { type: 'image/jpeg' });
+    const file = fileFromBuffer(sourceBuffer, 'camera.jpg', 'image/jpeg');
     const result = await compressImageAction(file, 40, 'KB', 'webp');
 
     expect(result.success).toBe(true);
@@ -221,7 +226,7 @@ describe('compressImageAction', () => {
     const sourceBuffer = await createNoisyJpeg(1200, 900);
     expect(sourceBuffer.length).toBeGreaterThan(targetSizeToBytes(20, 'KB'));
 
-    const file = new File([sourceBuffer], 'large.jpg', { type: 'image/jpeg' });
+    const file = fileFromBuffer(sourceBuffer, 'large.jpg', 'image/jpeg');
     const result = await compressImageAction(file, 20, 'KB', 'jpeg');
 
     expect(result.success).toBe(true);
@@ -241,7 +246,7 @@ describe('compressImageAction', () => {
     const targetBytes = targetSizeToBytes(targetKb, 'KB');
     expect(sourceBuffer.length).toBeGreaterThan(targetBytes);
 
-    const file = new File([sourceBuffer], 'huge.jpg', { type: 'image/jpeg' });
+    const file = fileFromBuffer(sourceBuffer, 'huge.jpg', 'image/jpeg');
     const result = await compressImageAction(file, targetKb, 'KB', 'jpeg');
 
     expect(result.success).toBe(true);
@@ -261,7 +266,7 @@ describe('compressImageAction', () => {
     const targetBytes = targetSizeToBytes(targetKb, 'KB');
     expect(sourceBuffer.length).toBeGreaterThan(targetBytes);
 
-    const file = new File([sourceBuffer], 'photo.jpg', { type: 'image/jpeg' });
+    const file = fileFromBuffer(sourceBuffer, 'photo.jpg', 'image/jpeg');
     const result = await compressImageAction(file, targetKb, 'KB', 'png');
 
     expect(result.success).toBe(true);
